@@ -471,6 +471,8 @@
     const CARD_VIDEOS = [];
     const tapHint = document.getElementById('tap-hint');
     const VOICES = [];
+    // เสียงออร่า: ใช้ไฟล์ mp3 (ดังได้แม้ iPhone เปิดโหมดเงียบ)
+    const AURA_SND = new Audio('aura.mp3'); AURA_SND.preload = 'auto'; VOICES.push(AURA_SND);
     AFRAME.registerComponent('card-video', {
       schema: { src: { default: '' }, mask: { default: '' }, noAura: { default: false }, aspect: { default: 1.21 } },
       init() {
@@ -797,7 +799,7 @@
         revealTimer = setTimeout(() => {
           parts.forEach(e => e.object3D.visible = true);
           for (const c of ['card-video', 'packed-video']) { const k = fx.components[c]; if (k && k.video) { k.video.currentTime = 0; k.video.play().catch(() => {}); } if (k && k.onReveal) k.onReveal(); }
-          { const cv = fx.components['card-video']; if (cv && cv.aura) SFX.aura(); }   // เสียงออร่าตอนการ์ดที่มีแสงปรากฏ
+          { const cv = fx.components['card-video']; if (cv && cv.aura) { AURA_SND.currentTime = 0; AURA_SND.play().catch(() => SFX.aura()); } }   // เสียงออร่าตอนการ์ดที่มีแสงปรากฏ
           if (fx._icons) fx._icons.components['badge-icons'].onReveal();
         }, SPARKLE_FIRST * 1000);
       });
