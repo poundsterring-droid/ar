@@ -15,10 +15,13 @@
       { name: "ถ่าน Panasonic", effect: "zap",   link: "https://www.facebook.com/Miraclemushroomstudio" },
       { name: "ภาพทดสอบ 2",    effect: "video", link: "https://www.youtube.com/" },
       { name: "ภาพทดสอบ 3",    effect: "video", link: "https://www.youtube.com/" },
-      { name: "ห้องผีสิง",      effect: "ghost", link: "" }
+      { name: "ห้องผีสิง",      effect: "ghost", link: "" },
+      { name: "รู้ใจตัวเอง",     effect: "card",  video: "card1.mp4", link: "" },
+      { name: "มั่นใจ",          effect: "card",  video: "card2.mp4", link: "" },
+      { name: "กล้าหาญ",         effect: "card",  video: "card3.mp4", link: "" }
     ];
     // อัตราส่วนสูง/กว้าง ของแต่ละภาพ (ใช้วางเอฟเฟกต์ให้พอดีภาพ)
-    window.AR_ASPECT = [340 / 1200, 1, 1, 1080 / 1920];
+    window.AR_ASPECT = [340 / 1200, 1, 1, 1080 / 1920, 1016 / 839, 1016 / 839, 1016 / 839];
   </script>
   <!-- ======================================================== -->
 
@@ -93,9 +96,8 @@
       <div id="start-msg"></div>
     </div>
   </div>
-  <div id="hint" style="opacity:0">ส่องไปที่ภาพ หรือกางมือให้เห็นฝ่ามือ</div>
+  <div id="hint" style="opacity:0">ส่องให้เห็นภาพทั้งภาพ ห่างประมาณ 30–50 ซม.</div>
   <div id="scare"></div>
-  <canvas id="goldfx" style="position:fixed;inset:0;width:100%;height:100%;z-index:50;pointer-events:none"></canvas>
   <a id="yt-btn" href="#" target="_blank" rel="noopener">
     <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>
     <span>ดูวิดีโอบน YouTube</span>
@@ -370,6 +372,32 @@
       }
     });
 
+
+    // ---------- การ์ดดุ๊กดิ๊ก: วิดีโอวางทับการ์ดพอดี ----------
+    const CARD_VIDEOS = [];
+    AFRAME.registerComponent('card-video', {
+      schema: { src: { default: '' }, aspect: { default: 1.21 } },
+      init() {
+        const v = document.createElement('video');
+        Object.assign(v, { src: this.data.src, loop: true, muted: true, playsInline: true, preload: 'auto', crossOrigin: 'anonymous' });
+        v.setAttribute('playsinline', ''); v.setAttribute('webkit-playsinline', '');
+        this.video = v; CARD_VIDEOS.push(v);
+        const tex = new THREE.VideoTexture(v);
+        tex.colorSpace = THREE.SRGBColorSpace;
+        const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, this.data.aspect), new THREE.MeshBasicMaterial({ map: tex, toneMapped: false }));
+        mesh.position.z = 0.002;
+        this.el.setObject3D('mesh', mesh);
+        const target = this.el.parentNode;
+        target.addEventListener('targetFound', () => { v.currentTime = 0; v.play().catch(() => { v.muted = true; v.play(); }); });
+        target.addEventListener('targetLost', () => v.pause());
+      }
+    });
+    // ปลดล็อกเสียงวิดีโอจากการแตะลิ้น (มือถือบังคับต้องแตะก่อน)
+    window.unlockCardVideos = () => CARD_VIDEOS.forEach(v => {
+      v.muted = false;
+      const p = v.play(); if (p) p.then(() => { v.pause(); v.currentTime = 0; }).catch(() => { v.muted = true; });
+    });
+
     // ---------- ป้าย "วิดีโอ" ลอยบนภาพ ----------
     AFRAME.registerComponent('video-badge', {
       schema: { aspect: { default: 1 }, label: { default: '' } },
@@ -415,6 +443,7 @@
       const aspect = (window.AR_ASPECT && window.AR_ASPECT[i]) || 1;
       if (cfg.effect === 'zap') fx.setAttribute('zap-effect', { aspect });
       else if (cfg.effect === 'ghost') fx.setAttribute('ghost-effect', { aspect });
+      else if (cfg.effect === 'card') fx.setAttribute('card-video', { src: cfg.video, aspect });
       else fx.setAttribute('video-badge', { aspect, label: cfg.name });
       target.appendChild(fx);
 
@@ -473,202 +502,18 @@
         if (!window.isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error('nomedia');
         // ขอสิทธิ์กล้องจากการแตะของผู้ใช้โดยตรง (iPhone ต้องการแบบนี้)
         SFX.unlock(); // ปลดล็อกเสียงจากการแตะ (มือถือบังคับ)
+        if (window.unlockCardVideos) window.unlockCardVideos();
         const s = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
         s.getTracks().forEach(t => t.stop());
         const go = () => {
           startEl.style.display = 'none'; hint.style.opacity = 1;
           const sys = scene.systems['mindar-image-system'];
           sys.start();
-          // รอให้กล้องของระบบส่องภาพพร้อม แล้วเริ่มจับมือจากวิดีโอเดียวกัน
-          const waitVideo = setInterval(() => {
-            if (sys.video && sys.video.readyState >= 2) {
-              clearInterval(waitVideo);
-              Promise.resolve().then(() => window.startHandGold(sys.video)).catch(e => console.warn('hand gold off', e));
-            }
-          }, 300);
         };
         scene.hasLoaded ? go() : scene.addEventListener('loaded', go, { once: true });
       } catch (e) { showError(e); }
     });
     scene.addEventListener('arError', () => showError({ name: 'arError' }));
   </script>
-<script type="module">
-// ทองบนมือ: ใช้วิดีโอกล้องตัวเดียวกับระบบส่องภาพ (ไม่ต้องเปิดกล้องซ้ำ)
-const WASM = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm';
-const MODEL = 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task';
-let video = null, fx = null, ctx = null, landmarker = null, lastVideoTime = -1, frame = 0;
-const DEMO = new URLSearchParams(location.search).has('demohand');
-
-// ---------- สถานะที่ทำให้ภาพนิ่ง (ไม่สั่นตามมือ) ----------
-const S = { x: 0, y: 0, size: 0, angle: 0, open: 0, seen: 0 };
-const lerp = (a, b, t) => a + (b - a) * t;
-const sparkles = [];
-const coins = Array.from({ length: 7 }, (_, i) => ({ a: i / 7 * Math.PI * 2, r: 0.9 + Math.random() * 0.35, h: Math.random(), spin: Math.random() * 6 }));
-
-function resize() {
-  const dpr = Math.min(2, window.devicePixelRatio || 1);
-  fx.width = innerWidth * dpr; fx.height = innerHeight * dpr;
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-}
-addEventListener('resize', resize);
-
-// พิกัดจากวิดีโอ (0..1) → พิกัดจอ ใช้กรอบจริงของวิดีโอบนจอ
-function toScreen(p) {
-  const r = video.getBoundingClientRect();
-  return { x: r.left + p.x * r.width, y: r.top + p.y * r.height };
-}
-
-// ---------- วิเคราะห์มือ: กลางฝ่ามือ, ขนาด, มุม, กางหรือกำ ----------
-function readHand(lm) {
-  const pts = lm.map(toScreen);
-  const ids = [0, 5, 9, 13, 17];
-  const cx = ids.reduce((a, i) => a + pts[i].x, 0) / 5;
-  const cy = ids.reduce((a, i) => a + pts[i].y, 0) / 5;
-  const size = Math.hypot(pts[9].x - pts[0].x, pts[9].y - pts[0].y);
-  const angle = Math.atan2(pts[9].y - pts[0].y, pts[9].x - pts[0].x) + Math.PI / 2;
-  // นิ้วกาง = ปลายนิ้วอยู่ไกลข้อมือกว่าข้อนิ้ว
-  let ext = 0;
-  [[8, 6], [12, 10], [16, 14], [20, 18]].forEach(([tip, pip]) => {
-    const dt = Math.hypot(lm[tip].x - lm[0].x, lm[tip].y - lm[0].y);
-    const dp = Math.hypot(lm[pip].x - lm[0].x, lm[pip].y - lm[0].y);
-    if (dt > dp * 1.1) ext++;
-  });
-  return { cx, cy, size, angle, open: ext >= 3 ? 1 : 0 };
-}
-
-// ---------- วาดทอง ----------
-function goldGrad(x0, y0, x1, y1, dark) {
-  const g = ctx.createLinearGradient(x0, y0, x1, y1);
-  if (dark) { g.addColorStop(0, '#8a5a06'); g.addColorStop(1, '#c48a12'); }
-  else { g.addColorStop(0, '#fff6c2'); g.addColorStop(0.35, '#ffd34d'); g.addColorStop(0.7, '#e3a417'); g.addColorStop(1, '#b97b06'); }
-  return g;
-}
-
-function bar(x, y, w, h, d, t) {
-  // แท่งทองทรงคางหมู มองเฉียงจากด้านบน
-  const top = [[x - w * 0.36, y - h], [x + w * 0.36, y - h], [x + w * 0.36 + d, y - h - d * 0.55], [x - w * 0.36 + d, y - h - d * 0.55]];
-  const front = [[x - w / 2, y], [x + w / 2, y], [x + w * 0.36, y - h], [x - w * 0.36, y - h]];
-  const side = [[x + w / 2, y], [x + w / 2 + d, y - d * 0.55], [x + w * 0.36 + d, y - h - d * 0.55], [x + w * 0.36, y - h]];
-  const poly = (pts, fill) => { ctx.beginPath(); pts.forEach(([a, b], i) => i ? ctx.lineTo(a, b) : ctx.moveTo(a, b)); ctx.closePath(); ctx.fillStyle = fill; ctx.fill(); ctx.strokeStyle = 'rgba(90,55,0,.55)'; ctx.lineWidth = 1; ctx.stroke(); };
-  poly(side, goldGrad(x + w / 2, y, x + w / 2 + d, y - h, true));
-  poly(front, goldGrad(x - w / 2, y - h, x + w / 2, y, false));
-  poly(top, goldGrad(x - w * 0.36, y - h - d * 0.55, x + w * 0.36 + d, y - h, false));
-  // แสงวิ่งผ่านแท่งทอง
-  const sx = x - w / 2 + ((t / 9) % (w * 2.4)) - w * 0.4;
-  ctx.save(); ctx.beginPath(); front.forEach(([a, b], i) => i ? ctx.lineTo(a, b) : ctx.moveTo(a, b)); ctx.closePath(); ctx.clip();
-  const sh = ctx.createLinearGradient(sx - w * 0.15, 0, sx + w * 0.15, 0);
-  sh.addColorStop(0, 'rgba(255,255,255,0)'); sh.addColorStop(0.5, 'rgba(255,255,255,.75)'); sh.addColorStop(1, 'rgba(255,255,255,0)');
-  ctx.fillStyle = sh; ctx.fillRect(x - w, y - h * 2, w * 2, h * 3); ctx.restore();
-  // ตัวหนังสือบนแท่ง
-  ctx.fillStyle = 'rgba(120,75,0,.75)'; ctx.font = `800 ${h * 0.42}px system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText('99.99', x, y - h * 0.5);
-}
-
-function coin(x, y, r, spin) {
-  const sx = Math.abs(Math.cos(spin)) * 0.85 + 0.15;
-  ctx.save(); ctx.translate(x, y); ctx.scale(sx, 1);
-  ctx.fillStyle = '#b07806'; ctx.beginPath(); ctx.arc(r * 0.12, 0, r, 0, 7); ctx.fill();
-  ctx.fillStyle = goldGrad(-r, -r, r, r, false); ctx.beginPath(); ctx.arc(0, 0, r, 0, 7); ctx.fill();
-  ctx.strokeStyle = 'rgba(140,90,0,.7)'; ctx.lineWidth = r * 0.12; ctx.beginPath(); ctx.arc(0, 0, r * 0.74, 0, 7); ctx.stroke();
-  ctx.fillStyle = 'rgba(140,90,0,.8)'; ctx.font = `900 ${r * 0.95}px system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText('฿', 0, r * 0.05);
-  ctx.restore();
-}
-
-function star(x, y, r, a) {
-  ctx.save(); ctx.globalAlpha = a; ctx.translate(x, y); ctx.fillStyle = '#fffbe0';
-  ctx.shadowColor = '#ffd34d'; ctx.shadowBlur = r * 3;
-  ctx.beginPath();
-  for (let i = 0; i < 8; i++) { const rr = i % 2 ? r * 0.22 : r; const an = i * Math.PI / 4; ctx.lineTo(Math.cos(an) * rr, Math.sin(an) * rr); }
-  ctx.closePath(); ctx.fill(); ctx.restore();
-}
-
-function draw(t) {
-  ctx.clearRect(0, 0, innerWidth, innerHeight);
-  if (S.open < 0.02 || S.seen < 0.02) { sparkles.length = 0; return; }
-  const k = S.size * 0.95 * S.open;            // ขนาดตามมือ และหดเมื่อกำมือ
-  const lift = Math.sin(t / 500) * k * 0.05;   // ลอยขึ้นลงเบา ๆ
-  ctx.save(); ctx.globalAlpha = Math.min(1, S.seen * 1.4);
-  ctx.translate(S.x, S.y); ctx.rotate(S.angle);
-
-  // แสงทองรอบ ๆ
-  const glow = ctx.createRadialGradient(0, -k * 0.3, k * 0.1, 0, -k * 0.3, k * 1.4);
-  glow.addColorStop(0, 'rgba(255,215,90,.55)'); glow.addColorStop(1, 'rgba(255,200,60,0)');
-  ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(0, -k * 0.3, k * 1.4, 0, 7); ctx.fill();
-
-  // เงาบนฝ่ามือ
-  ctx.fillStyle = 'rgba(60,35,0,.35)'; ctx.beginPath(); ctx.ellipse(k * 0.05, k * 0.12, k * 0.62, k * 0.16, 0, 0, 7); ctx.fill();
-
-  // กองแท่งทอง 3 แท่ง (ล่าง 2 บน 1)
-  const w = k * 0.62, h = k * 0.2, d = k * 0.18;
-  ctx.translate(0, lift);
-  bar(-w * 0.5, k * 0.08, w, h, d, t);
-  bar(w * 0.5, k * 0.08, w, h, d, t + 400);
-  bar(0, k * 0.08 - h, w, h, d, t + 800);
-
-  // เหรียญหมุนรอบกองทอง
-  coins.forEach(c => {
-    const a = c.a + t / 1400;
-    const cx = Math.cos(a) * k * c.r, cy = -k * 0.35 + Math.sin(a) * k * 0.28 - c.h * k * 0.35;
-    if (Math.sin(a) < 0) coin(cx, cy, k * 0.11, c.spin + t / 260); // เหรียญด้านหลัง
-  });
-  coins.forEach(c => {
-    const a = c.a + t / 1400;
-    const cx = Math.cos(a) * k * c.r, cy = -k * 0.35 + Math.sin(a) * k * 0.28 - c.h * k * 0.35;
-    if (Math.sin(a) >= 0) coin(cx, cy, k * 0.11, c.spin + t / 260); // เหรียญด้านหน้า
-  });
-
-  // ประกายวิบวับ
-  if (Math.random() < 0.35) sparkles.push({ x: (Math.random() - 0.5) * k * 1.6, y: -Math.random() * k * 1.1, life: 1, r: k * (0.05 + Math.random() * 0.06) });
-  for (let i = sparkles.length - 1; i >= 0; i--) {
-    const s = sparkles[i]; s.life -= 0.03; s.y -= k * 0.004;
-    if (s.life <= 0) { sparkles.splice(i, 1); continue; }
-    star(s.x, s.y, s.r * Math.sin(s.life * Math.PI), s.life);
-  }
-  ctx.restore();
-}
-
-
-function loop(t) {
-  let hand = null;
-  const busy = window.AR_TARGET_VISIBLE; // กำลังโชว์ถ่าน/ผีอยู่ = พักจับมือ ประหยัดเครื่อง
-  if (DEMO) {
-    hand = { cx: innerWidth / 2, cy: innerHeight * 0.62, size: Math.min(innerWidth, innerHeight) * 0.32, angle: 0, open: 1 };
-  } else if (!busy && landmarker && video.readyState >= 2 && video.currentTime !== lastVideoTime && (frame++ % 2 === 0)) {
-    lastVideoTime = video.currentTime;
-    const r = landmarker.detectForVideo(video, performance.now());
-    if (r.landmarks && r.landmarks[0]) hand = readHand(r.landmarks[0]);
-    else hand = false;
-  }
-  if (hand) {
-    const f = S.seen < 0.05 ? 1 : 0.35;
-    S.x = lerp(S.x, hand.cx, f); S.y = lerp(S.y, hand.cy, f);
-    S.size = lerp(S.size, hand.size, f); S.angle = lerp(S.angle, hand.angle, 0.3);
-    S.open = lerp(S.open, hand.open, 0.18); S.seen = lerp(S.seen, 1, 0.3);
-  } else if (hand === false || busy) {
-    S.seen = lerp(S.seen, 0, 0.12);
-  }
-  window.AR_HAND_VISIBLE = S.seen > 0.3 && S.open > 0.3;
-  const hint = document.getElementById('hint');
-  if (hint && window.AR_HAND_VISIBLE) hint.style.opacity = 0;
-  draw(t);
-  requestAnimationFrame(loop);
-}
-
-async function startHandGold(videoEl) {
-  video = videoEl;
-  fx = document.getElementById('goldfx'); ctx = fx.getContext('2d'); resize();
-  requestAnimationFrame(loop);
-  if (DEMO) return;
-  const { HandLandmarker, FilesetResolver } = await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs');
-  const files = await FilesetResolver.forVisionTasks(WASM);
-  const opts = (delegate) => ({ baseOptions: { modelAssetPath: MODEL, delegate }, runningMode: 'VIDEO', numHands: 1,
-    minHandDetectionConfidence: 0.5, minHandPresenceConfidence: 0.5, minTrackingConfidence: 0.5 });
-  try { landmarker = await HandLandmarker.createFromOptions(files, opts('GPU')); }
-  catch { landmarker = await HandLandmarker.createFromOptions(files, opts('CPU')); }
-}
-
-window.startHandGold = startHandGold;
-</script>
 </body>
 </html>
