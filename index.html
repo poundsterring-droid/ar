@@ -279,6 +279,26 @@
         const n = this.noise(0.7), ng = c.createGain(); ng.gain.setValueAtTime(0.25, t); ng.gain.exponentialRampToValueAtTime(0.001, t + 0.7);
         n.connect(ng).connect(c.destination); n.start(t);
       },
+      aura() { // เสียงออร่า: เสียงโหมดนุ่มๆ ลอยขึ้น + ระฆังวิ้งไล่โน้ต
+        if (!this.ctx) return; const c = this.ctx, t = c.currentTime;
+        const out = c.createGain(); out.gain.value = 0.5; out.connect(c.destination);
+        // เสียงโหมด (pad) ค่อยๆ ดังขึ้นแล้วจาง
+        const pad = c.createGain(); pad.gain.setValueAtTime(0.0001, t); pad.gain.exponentialRampToValueAtTime(0.22, t + 0.35); pad.gain.exponentialRampToValueAtTime(0.0001, t + 2.2);
+        const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.setValueAtTime(600, t); lp.frequency.exponentialRampToValueAtTime(3200, t + 0.9);
+        pad.connect(lp).connect(out);
+        [261.6, 329.6, 392.0, 523.3].forEach((f, i) => { const o = c.createOscillator(); o.type = i % 2 ? 'triangle' : 'sine'; o.frequency.value = f; o.detune.value = (i - 1.5) * 6; o.connect(pad); o.start(t); o.stop(t + 2.3); });
+        // ระฆังวิ้งไล่ขึ้น
+        [1046.5, 1318.5, 1568.0, 2093.0, 2637.0, 3136.0].forEach((f, i) => {
+          const st = t + 0.12 + i * 0.09, o = c.createOscillator(), g = c.createGain();
+          o.type = 'sine'; o.frequency.value = f; g.gain.setValueAtTime(0.0001, st); g.gain.exponentialRampToValueAtTime(0.16, st + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, st + 0.9);
+          o.connect(g).connect(out); o.start(st); o.stop(st + 1);
+        });
+        // ลมวูบเบาๆ
+        const n = this.noise(1.2), bp = c.createBiquadFilter(), ng = c.createGain();
+        bp.type = 'bandpass'; bp.Q.value = 0.8; bp.frequency.setValueAtTime(800, t); bp.frequency.exponentialRampToValueAtTime(5000, t + 1);
+        ng.gain.setValueAtTime(0.0001, t); ng.gain.exponentialRampToValueAtTime(0.12, t + 0.3); ng.gain.exponentialRampToValueAtTime(0.0001, t + 1.2);
+        n.connect(bp).connect(ng).connect(out); n.start(t);
+      },
       scream() { // เสียงกรีดแหลมตอนพุ่งเข้าหา
         if (!this.ctx) return; const c = this.ctx, t = c.currentTime;
         const g = c.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.6, t + 0.05); g.gain.exponentialRampToValueAtTime(0.001, t + 1.1);
@@ -777,6 +797,7 @@
         revealTimer = setTimeout(() => {
           parts.forEach(e => e.object3D.visible = true);
           for (const c of ['card-video', 'packed-video']) { const k = fx.components[c]; if (k && k.video) { k.video.currentTime = 0; k.video.play().catch(() => {}); } if (k && k.onReveal) k.onReveal(); }
+          { const cv = fx.components['card-video']; if (cv && cv.aura) SFX.aura(); }   // เสียงออร่าตอนการ์ดที่มีแสงปรากฏ
           if (fx._icons) fx._icons.components['badge-icons'].onReveal();
         }, SPARKLE_FIRST * 1000);
       });
