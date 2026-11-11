@@ -36,7 +36,7 @@
       { name: "มีความหวัง", effect: "card", video: "card19.mp4", mask: CARD_MASK[19], link: "" },
       { name: "มีความสุขในแบบของฉัน", effect: "card", video: "card20.mp4", mask: CARD_MASK[20], link: "" },
       // กรอบ Mini Hearts (ใช้ร่วมกันทั้ง 4 สี): วิดีโอพื้นใส ครึ่งบน = ภาพ, ครึ่งล่าง = ความโปร่งใส
-      { name: "กรอบ Mini Hearts", effect: "packed", video: "frame-fx.mp4", voice: "voice.mp3", link: "" }
+      { name: "กรอบ Mini Hearts", effect: "packed", video: "frame-fx.mp4", voice: "voice.mp3", aura: true, heart: "heart-fx.mp4", link: "" }
     ];
     // อัตราส่วนสูง/กว้าง ของแต่ละภาพ (ใช้วางเอฟเฟกต์ให้พอดีภาพ)
     window.AR_ASPECT = [...Array(20).fill(1016 / 839), 1080 / 762];
@@ -399,29 +399,50 @@
 
 
     // วาดแสงออร่าสีทอง (เรืองรอบกรอบการ์ด + รัศมีแสง) ใช้ร่วมกันทุกการ์ด
-    let _aura = null;
-    function goldAuraTexture(aspect) {
-      if (_aura) return _aura;
-      const W = 512, H = Math.round(512 * aspect * 1.45 / 1.7), c = Object.assign(document.createElement('canvas'), { width: W, height: H });
+    // แสงออร่าสีทอง 2 แบบ: soft = การ์ด 20 ใบ, strong = กรอบ Mini Hearts
+    const AURA = {
+      soft:   { pw: 1.7, ph: 1.45, ray: 0.28, rw: [26, 14], rl: 0.55, loops: 4, blur: [40, 25], edge: false, op: [0.75, 0.25], sc: 0.04 },
+      strong: { pw: 2.1, ph: 1.75, ray: 0.55, rw: [34, 18], rl: 0.60, loops: 7, blur: [30, 22], edge: true,  op: [0.85, 0.15], sc: 0.06 }
+    };
+    const _aura = {};
+    function goldAuraTexture(aspect, radius, A) {
+      const key = aspect.toFixed(3) + '/' + radius + '/' + A.pw;
+      if (_aura[key]) return _aura[key];
+      const W = 512, H = Math.round(512 * aspect * A.ph / A.pw), c = Object.assign(document.createElement('canvas'), { width: W, height: H });
       const g = c.getContext('2d');
-      // รัศมีแสงพุ่งออก
       g.save(); g.translate(W / 2, H / 2);
       for (let i = 0; i < 28; i++) {
         g.rotate(Math.PI * 2 / 28);
-        const gr = g.createLinearGradient(0, 0, 0, -H * 0.55);
-        gr.addColorStop(0, 'rgba(255,215,90,0.28)'); gr.addColorStop(1, 'rgba(255,190,40,0)');
-        g.fillStyle = gr; g.beginPath(); g.moveTo(-6, 0); g.lineTo(-(i % 2 ? 26 : 14), -H * 0.55); g.lineTo(i % 2 ? 26 : 14, -H * 0.55); g.lineTo(6, 0); g.fill();
+        const gr = g.createLinearGradient(0, 0, 0, -H * A.rl);
+        gr.addColorStop(0, `rgba(255,220,100,${A.ray})`); gr.addColorStop(1, 'rgba(255,190,40,0)');
+        const w = i % 2 ? A.rw[0] : A.rw[1];
+        g.fillStyle = gr; g.beginPath(); g.moveTo(-6, 0); g.lineTo(-w, -H * A.rl); g.lineTo(w, -H * A.rl); g.lineTo(6, 0); g.fill();
       }
       g.restore();
-      // แสงเรืองรอบกรอบการ์ด
-      const cw = W / 1.7, ch = cw * aspect, x = (W - cw) / 2, y = (H - ch) / 2;
-      for (let k = 0; k < 4; k++) {
-        g.save(); g.shadowColor = 'rgba(255,200,50,1)'; g.shadowBlur = 40 + k * 25;
-        g.fillStyle = 'rgba(255,214,90,0.9)';
-        g.beginPath(); g.roundRect(x + 6, y + 6, cw - 12, ch - 12, 26); g.fill(); g.restore();
+      const cw = W / A.pw, ch = cw * aspect, x = (W - cw) / 2, y = (H - ch) / 2;
+      for (let k = 0; k < A.loops; k++) {
+        g.save(); g.shadowColor = 'rgba(255,205,60,1)'; g.shadowBlur = A.blur[0] + k * A.blur[1];
+        g.fillStyle = 'rgba(255,214,90,0.9)'; g.beginPath(); g.roundRect(x + 6, y + 6, cw - 12, ch - 12, radius); g.fill(); g.restore();
       }
-      _aura = new THREE.CanvasTexture(c); _aura.colorSpace = THREE.SRGBColorSpace;
-      return _aura;
+      if (A.edge) {
+        g.save(); g.shadowColor = 'rgba(255,250,210,1)'; g.shadowBlur = 18; g.strokeStyle = 'rgba(255,248,200,0.95)'; g.lineWidth = 10;
+        g.beginPath(); g.roundRect(x + 4, y + 4, cw - 8, ch - 8, radius); g.stroke(); g.restore();
+      }
+      // เจาะช่องตรงกลาง ให้แสงอยู่แค่รอบนอก (มุม QR ไม่โดนแสงทับ)
+      g.save(); g.globalCompositeOperation = 'destination-out'; g.beginPath(); g.roundRect(x + 14, y + 14, cw - 28, ch - 28, Math.max(2, radius - 6)); g.fill(); g.restore();
+      const tx = new THREE.CanvasTexture(c); tx.colorSpace = THREE.SRGBColorSpace;
+      return (_aura[key] = tx);
+    }
+    function goldAuraMesh(aspect, radius, style) {
+      const A = AURA[style];
+      const aura = new THREE.Mesh(new THREE.PlaneGeometry(A.pw, aspect * A.ph),
+        new THREE.MeshBasicMaterial({ map: goldAuraTexture(aspect, radius, A), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false }));
+      aura.position.z = -0.004; aura.renderOrder = 1; aura.userData.A = A;
+      return aura;
+    }
+    function pulseAura(aura, t) {
+      const A = aura.userData.A, p = 0.5 + 0.5 * Math.sin(t / 450);
+      aura.material.opacity = A.op[0] + A.op[1] * p; aura.scale.setScalar(1 + A.sc * p); aura.rotation.z = Math.sin(t / 2600) * 0.015;
     }
     // ---------- การ์ดดุ๊กดิ๊ก: วิดีโอวางทับการ์ดพอดี ----------
     const CARD_VIDEOS = [];
@@ -439,23 +460,14 @@
         const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, this.data.aspect), new THREE.MeshBasicMaterial({ map: tex, toneMapped: false, transparent: true, depthWrite: false, alphaMap: this.data.mask ? new THREE.TextureLoader().load(this.data.mask) : null }));
         mesh.position.z = 0.002;
         const group = new THREE.Group(); group.add(mesh);
-        // แสงออร่าสีทองด้านหลังการ์ด
-        const aura = new THREE.Mesh(new THREE.PlaneGeometry(1.7, this.data.aspect * 1.45),
-          new THREE.MeshBasicMaterial({ map: goldAuraTexture(this.data.aspect), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false }));
-        aura.position.z = -0.004; group.add(aura); this.aura = aura;
-        aura.renderOrder = 1; mesh.renderOrder = 2; // วาดแสงก่อน แล้ววาดวิดีโอทับ
+        // แสงออร่าสีทองด้านหลังการ์ด (แบบนุ่ม)
+        const aura = goldAuraMesh(this.data.aspect, 26, 'soft'); group.add(aura); this.aura = aura; mesh.renderOrder = 2;
         this.el.setObject3D('mesh', group);
         const target = this.el.parentNode;
         target.addEventListener('targetFound', () => { v.currentTime = 0; v.play().catch(() => { v.muted = true; v.play(); }); });
         target.addEventListener('targetLost', () => v.pause());
       },
-      tick(t) {
-        if (!this.aura) return;
-        const p = 0.5 + 0.5 * Math.sin(t / 450);
-        this.aura.material.opacity = 0.75 + 0.25 * p;
-        this.aura.scale.setScalar(1 + 0.04 * p);
-        this.aura.rotation.z = Math.sin(t / 2600) * 0.015;
-      }
+      tick(t) { if (this.aura) pulseAura(this.aura, t); }
     });
     // ปลดล็อกเสียงวิดีโอจากการแตะลิ้น (มือถือบังคับต้องแตะก่อน)
     window.unlockVoices = () => VOICES.forEach(a => { a.muted = true; const p = a.play(); if (p) p.then(() => { a.pause(); a.currentTime = 0; a.muted = false; }).catch(() => { a.muted = false; }); });
@@ -467,7 +479,7 @@
 
     // ---------- วิดีโอพื้นใสแบบ packed (บน = สี, ล่าง = alpha) เล่นได้ทุกมือถือ ----------
     AFRAME.registerComponent('packed-video', {
-      schema: { src: { default: '' }, voice: { default: '' }, aspect: { default: 1.4 } },
+      schema: { src: { default: '' }, voice: { default: '' }, aura: { default: false }, heart: { default: '' }, aspect: { default: 1.4 } },
       init() {
         const v = document.createElement('video');
         Object.assign(v, { src: this.data.src, loop: true, muted: true, playsInline: true, preload: 'auto', crossOrigin: 'anonymous' });
@@ -483,19 +495,30 @@
         });
         const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, this.data.aspect), mat);
         mesh.position.z = 0.003; mesh.renderOrder = 3;
-        this.el.setObject3D('mesh', mesh);
+        const group = new THREE.Group(); group.add(mesh);
+        if (this.data.aura) { this.aura = goldAuraMesh(this.data.aspect, 6, 'strong'); group.add(this.aura); }   // แสงทองรอบกรอบ
+        this.el.setObject3D('mesh', group);
+        // หัวใจ: เริ่มเล็กเท่าหัวใจที่พิมพ์บนการ์ด แล้วเด้งขยายลอยขึ้นมา
+        const asp = this.data.aspect, P = (fx, fy) => [fx - 0.5, asp / 2 - fy * asp];
+        if (this.data.heart) {
+          this.heartFrom = P(0.402, 0.596); this.heartTo = P(0.4025, 0.562); this.heartS0 = 0.43;
+          this.pivot = new THREE.Group(); group.add(this.pivot);
+          const hm = packedVideoMesh(this.data.heart, 0.6509, 0.3796 * asp);
+          const c = P(0.4055, 0.5602); hm.position.set(c[0] - this.heartTo[0], c[1] - this.heartTo[1], 0); hm.renderOrder = 5;
+          this.pivot.add(hm); this.heartVideo = hm.userData.video; CARD_VIDEOS.push(this.heartVideo);
+          this.popAt = 0; this.setHeart(0);
+        }
         const target = this.el.parentNode;
         target.addEventListener('targetFound', () => {
           v.currentTime = 0; v.play().catch(() => {});
           if (voice) setTimeout(() => { if (target.object3D.visible) tapHint.classList.add('show'); }, SPARKLE_FIRST * 1000);
         });
-        target.addEventListener('targetLost', () => { v.pause(); if (voice) voice.pause(); tapHint.classList.remove('show'); });
+        target.addEventListener('targetLost', () => { v.pause(); if (voice) voice.pause(); if (this.heartVideo) this.heartVideo.pause(); this.popAt = 0; tapHint.classList.remove('show'); });
         // แตะที่หัวใจน้ำเงินเพื่อฟังเสียง (พื้นที่ล่องหนวางทับหัวใจ)
         if (voice) {
-          const asp = this.data.aspect;
           const hit = new THREE.Mesh(new THREE.PlaneGeometry(0.66, 0.36 * asp), new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }));
-          hit.position.set(-0.11, asp / 2 - 0.57 * asp, 0.01);
-          mesh.parent ? mesh.parent.add(hit) : this.el.object3D.add(hit);
+          if (this.pivot) { hit.position.set(0, 0, 0.01); this.pivot.add(hit); }
+          else { hit.position.set(-0.11, asp / 2 - 0.57 * asp, 0.01); group.add(hit); }
           const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
           window.addEventListener('pointerdown', (e) => {
             if (!target.object3D.visible || !this.el.object3D.visible) return;
@@ -508,6 +531,25 @@
               if (navigator.vibrate) navigator.vibrate(30);
             }
           });
+        }
+      },
+      setHeart(k) {   // k: 0 = เท่าหัวใจบนการ์ด, 1 = ตัวเต็มลอยขึ้นมา
+        const [x0, y0] = this.heartFrom, [x1, y1] = this.heartTo, s0 = this.heartS0;
+        this.pivot.position.set(x0 + (x1 - x0) * k, y0 + (y1 - y0) * k, 0.004 + 0.12 * Math.max(0, k));
+        this.pivot.scale.setScalar(s0 + (1 - s0) * k);
+      },
+      onReveal() {
+        if (!this.pivot) return;
+        this.heartVideo.currentTime = 0; this.heartVideo.play().catch(() => {});
+        this.popAt = performance.now() + 400;   // ค้างเท่าการ์ดแป๊บหนึ่งก่อนเด้ง
+        this.setHeart(0);
+      },
+      tick(t) {
+        if (this.aura) pulseAura(this.aura, t);
+        if (this.pivot && this.popAt) {
+          const u = Math.min(1, Math.max(0, (performance.now() - this.popAt) / 700));
+          const c1 = 1.9, c3 = c1 + 1, back = 1 + c3 * Math.pow(u - 1, 3) + c1 * Math.pow(u - 1, 2);   // เด้งเกินนิดแล้วกลับ
+          this.setHeart(u <= 0 ? 0 : back);
         }
       }
     });
@@ -667,7 +709,7 @@
       if (cfg.effect === 'zap') fx.setAttribute('zap-effect', { aspect });
       else if (cfg.effect === 'ghost') fx.setAttribute('ghost-effect', { aspect });
       else if (cfg.effect === 'card') fx.setAttribute('card-video', { src: cfg.video, mask: cfg.mask || '', aspect });
-      else if (cfg.effect === 'packed') fx.setAttribute('packed-video', { src: cfg.video, voice: cfg.voice || '', aspect });
+      else if (cfg.effect === 'packed') fx.setAttribute('packed-video', { src: cfg.video, voice: cfg.voice || '', aura: !!cfg.aura, heart: cfg.heart || '', aspect });
       else fx.setAttribute('video-badge', { aspect, label: cfg.name });
       target.appendChild(fx);
       // หุ่นมือโบกมือ (เฉพาะกรอบ Mini Hearts)
@@ -681,7 +723,7 @@
         clearTimeout(revealTimer);
         revealTimer = setTimeout(() => {
           parts.forEach(e => e.object3D.visible = true);
-          for (const c of ['card-video', 'packed-video']) { const k = fx.components[c]; if (k && k.video) { k.video.currentTime = 0; k.video.play().catch(() => {}); } }
+          for (const c of ['card-video', 'packed-video']) { const k = fx.components[c]; if (k && k.video) { k.video.currentTime = 0; k.video.play().catch(() => {}); } if (k && k.onReveal) k.onReveal(); }
         }, SPARKLE_FIRST * 1000);
       });
       target.addEventListener('targetLost', () => clearTimeout(revealTimer));
