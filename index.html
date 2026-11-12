@@ -552,7 +552,7 @@
             ray.setFromCamera(ndc, this.el.sceneEl.camera);
             if (ray.intersectObject(hit).length) {
               tapHint.classList.remove('show');
-              voice.currentTime = 0; voice.muted = false; voice.play().catch(() => {});
+              voice.currentTime = 0; voice.muted = false; voice.play().catch(() => {}); clearTimeout(hideTimer); setButton('https://www.youtube.com/playlist?list=PL78EDk_9jZAFHeSUckv3Bc4E5w01NLafD'); btn.classList.add('show');
               if (navigator.vibrate) navigator.vibrate(30);
             }
           });
@@ -691,9 +691,9 @@
 
     // ---------- ไอคอนโซเชียล 4 อันล้อมเข็มกลัด แตะแล้วเปิดลิงก์ ----------
     const BADGE_ICONS = [
-      { name: 'facebook',  x: -0.56, y:  0.56, url: 'https://www.facebook.com/profile.php?id=61573655301408' },
+      { name: 'facebook',  x: -0.56, y:  0.56, url: 'https://www.facebook.com/profile.php?id=100063451907736' },
       { name: 'instagram', x:  0.56, y:  0.56, url: 'https://www.instagram.com/miracle_mushroom' },
-      { name: 'youtube',   x: -0.56, y: -0.56, url: 'https://www.youtube.com/@Miraclemushroomchannel' },
+      { name: 'youtube',   x: -0.56, y: -0.56, url: 'https://www.youtube.com/playlist?list=PL78EDk_9jZAHL9fLJ3XAfX-dxPgxwS6KB' },
       { name: 'tiktok',    x:  0.56, y: -0.56, url: 'https://www.tiktok.com/@miraclemushroom_tiktok' }
     ];
     AFRAME.registerComponent('badge-icons', {
