@@ -37,7 +37,7 @@
       { name: "มีความหวัง", effect: "card", video: "card19.mp4", mask: CARD_MASK[19], link: "" },
       { name: "มีความสุขในแบบของฉัน", effect: "card", video: "card20.mp4", mask: CARD_MASK[20], link: "" },
       // กรอบ Mini Hearts (ใช้ร่วมกันทั้ง 4 สี): วิดีโอพื้นใส ครึ่งบน = ภาพ, ครึ่งล่าง = ความโปร่งใส
-      { name: "กรอบ Mini Hearts", effect: "packed", video: "frame-fx.mp4", voice: "voice.mp3", aura: true, heart: "heart-fx.mp4", link: "" },
+      { name: "กรอบ Mini Hearts", effect: "packed", video: "frame-fx.mp4", voice: "voice.mp3", aura: true, heart: "heart-fx.mp4", puppets: true, heartLink: "https://www.youtube.com/playlist?list=PL78EDk_9jZAFHeSUckv3Bc4E5w01NLafD", link: "" },
       // เข็มกลัด: วิดีโอตัดเป็นวงกลม ไม่มีออร่า
       { name: "เข็มกลัด", effect: "card", video: "badge.mp4", mask: BADGE_MASK, noAura: true, icons: true, link: "" }
     ];
@@ -504,7 +504,7 @@
 
     // ---------- วิดีโอพื้นใสแบบ packed (บน = สี, ล่าง = alpha) เล่นได้ทุกมือถือ ----------
     AFRAME.registerComponent('packed-video', {
-      schema: { src: { default: '' }, voice: { default: '' }, aura: { default: false }, heart: { default: '' }, aspect: { default: 1.4 } },
+      schema: { src: { default: '' }, voice: { default: '' }, aura: { default: false }, heart: { default: '' }, heartLink: { default: '' }, aspect: { default: 1.4 } },
       init() {
         const v = document.createElement('video');
         Object.assign(v, { src: this.data.src, loop: true, muted: true, playsInline: true, preload: 'auto', crossOrigin: 'anonymous' });
@@ -552,7 +552,9 @@
             ray.setFromCamera(ndc, this.el.sceneEl.camera);
             if (ray.intersectObject(hit).length) {
               tapHint.classList.remove('show');
-              voice.currentTime = 0; voice.muted = false; voice.play().catch(() => {}); clearTimeout(hideTimer); setButton('https://www.youtube.com/playlist?list=PL78EDk_9jZAFHeSUckv3Bc4E5w01NLafD'); btn.classList.add('show');
+              voice.currentTime = 0; voice.muted = false; voice.play().catch(() => {});
+              // โชว์ปุ่มลิงก์ (แบบ ค: เสียงเล่น + ปุ่มให้กดเอง)
+              if (this.data.heartLink) { clearTimeout(hideTimer); setButton(this.data.heartLink); btn.classList.add('show'); }
               if (navigator.vibrate) navigator.vibrate(30);
             }
           });
@@ -582,7 +584,7 @@
 
     // ---------- หุ่นมือโบกมือ: ดูสีหุ่นที่พิมพ์บนกรอบ แล้วโผล่ตัวที่สีตรงกัน ----------
     // ตำแหน่ง/ขนาดบนกรอบ (หน่วย = ความกว้างกรอบ, จุดกึ่งกลางกรอบ = 0,0)
-    const PUPPETS = {"blue": {"x": 0.2618, "y": -0.4393, "w": 0.5963, "h": 0.5732}, "gray": {"x": 0.3333, "y": -0.4415, "w": 0.4533, "h": 0.5684}, "pink": {"x": 0.2935, "y": -0.3986, "w": 0.5331, "h": 0.6596}, "yellow": {"x": 0.2568, "y": -0.3986, "w": 0.6063, "h": 0.6596}};
+    const PUPPETS = {"blue": {"x": 0.2437, "y": -0.3307, "w": 0.6125, "h": 0.7609}, "gray": {"x": 0.2211, "y": -0.3603, "w": 0.5047, "h": 0.7141}, "pink": {"x": 0.2391, "y": -0.2447, "w": 0.5969, "h": 0.9328}, "yellow": {"x": 0.2898, "y": -0.29, "w": 0.9266, "h": 0.8422}};
     const PACKED_FRAG = 'uniform sampler2D map;\nuniform float fade;\nvarying vec2 vUv;\nvoid main(){\n  vec3 c = texture2D(map, vec2(vUv.x, 0.5 + vUv.y * 0.5)).rgb;\n  float a = texture2D(map, vec2(vUv.x, vUv.y * 0.5)).r;\n  gl_FragColor = vec4(c, a * fade);\n  #include <colorspace_fragment>\n}';
     const PACKED_VERT = 'varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }';
     function packedVideoMesh(src, w, h) {
@@ -782,7 +784,7 @@
       if (cfg.effect === 'zap') fx.setAttribute('zap-effect', { aspect });
       else if (cfg.effect === 'ghost') fx.setAttribute('ghost-effect', { aspect });
       else if (cfg.effect === 'card') fx.setAttribute('card-video', { src: cfg.video, mask: cfg.mask || '', noAura: !!cfg.noAura, aspect });
-      else if (cfg.effect === 'packed') fx.setAttribute('packed-video', { src: cfg.video, voice: cfg.voice || '', aura: !!cfg.aura, heart: cfg.heart || '', aspect });
+      else if (cfg.effect === 'packed') fx.setAttribute('packed-video', { src: cfg.video, voice: cfg.voice || '', aura: !!cfg.aura, heart: cfg.heart || '', heartLink: cfg.heartLink || '', aspect });
       else fx.setAttribute('video-badge', { aspect, label: cfg.name });
       target.appendChild(fx);
       // ไอคอนโซเชียลล้อมเข็มกลัด
