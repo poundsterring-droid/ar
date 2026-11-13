@@ -16,26 +16,26 @@
     // การ์ด 20 ใบ เรียงตามลำดับในไฟล์ targets.mind
     const BADGE_MASK = 'data:image/png;base64,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';
     window.AR_TARGETS = [
-      { name: "รู้ใจตัวเอง", effect: "card", video: "card1.mp4", mask: CARD_MASK[1], link: "" },
-      { name: "มั่นใจ", effect: "card", video: "card2.mp4", mask: CARD_MASK[2], link: "" },
-      { name: "กล้าหาญ", effect: "card", video: "card3.mp4", mask: CARD_MASK[3], link: "" },
-      { name: "ใจเย็น", effect: "card", video: "card4.mp4", mask: CARD_MASK[4], link: "" },
-      { name: "รักตัวเอง", effect: "card", video: "card5.mp4", mask: CARD_MASK[5], link: "" },
-      { name: "เห็นใจผู้อื่น", effect: "card", video: "card6.mp4", mask: CARD_MASK[6], link: "" },
-      { name: "ไม่ยอมแพ้", effect: "card", video: "card7.mp4", mask: CARD_MASK[7], link: "" },
-      { name: "ยอมรับความผิดพลาด", effect: "card", video: "card8.mp4", mask: CARD_MASK[8], link: "" },
-      { name: "กล้าเป็นตัวเอง", effect: "card", video: "card9.mp4", mask: CARD_MASK[9], link: "" },
-      { name: "รู้จักปล่อยวาง", effect: "card", video: "card10.mp4", mask: CARD_MASK[10], link: "" },
-      { name: "มองโลกในแง่ดี", effect: "card", video: "card11.mp4", mask: CARD_MASK[11], link: "" },
-      { name: "กล้าพูดความรู้สึก", effect: "card", video: "card12.mp4", mask: CARD_MASK[12], link: "" },
-      { name: "อดทนรอคอย", effect: "card", video: "card13.mp4", mask: CARD_MASK[13], link: "" },
-      { name: "ให้อภัย", effect: "card", video: "card14.mp4", mask: CARD_MASK[14], link: "" },
-      { name: "ขอบคุณสิ่งเล็ก ๆ", effect: "card", video: "card15.mp4", mask: CARD_MASK[15], link: "" },
-      { name: "รู้จักขอความช่วยเหลือ", effect: "card", video: "card16.mp4", mask: CARD_MASK[16], link: "" },
-      { name: "เคารพตัวเอง", effect: "card", video: "card17.mp4", mask: CARD_MASK[17], link: "" },
-      { name: "ยินดีกับผู้อื่น", effect: "card", video: "card18.mp4", mask: CARD_MASK[18], link: "" },
-      { name: "มีความหวัง", effect: "card", video: "card19.mp4", mask: CARD_MASK[19], link: "" },
-      { name: "มีความสุขในแบบของฉัน", effect: "card", video: "card20.mp4", mask: CARD_MASK[20], link: "" },
+      { name: "รู้ใจตัวเอง", effect: "card", video: "card1.mp4", sound: "snd1.mp3", mask: CARD_MASK[1], link: "" },
+      { name: "มั่นใจ", effect: "card", video: "card2.mp4", sound: "snd2.mp3", mask: CARD_MASK[2], link: "" },
+      { name: "กล้าหาญ", effect: "card", video: "card3.mp4", sound: "snd3.mp3", mask: CARD_MASK[3], link: "" },
+      { name: "ใจเย็น", effect: "card", video: "card4.mp4", sound: "snd4.mp3", mask: CARD_MASK[4], link: "" },
+      { name: "รักตัวเอง", effect: "card", video: "card5.mp4", sound: "snd5.mp3", mask: CARD_MASK[5], link: "" },
+      { name: "เห็นใจผู้อื่น", effect: "card", video: "card6.mp4", sound: "snd6.mp3", mask: CARD_MASK[6], link: "" },
+      { name: "ไม่ยอมแพ้", effect: "card", video: "card7.mp4", sound: "snd7.mp3", mask: CARD_MASK[7], link: "" },
+      { name: "ยอมรับความผิดพลาด", effect: "card", video: "card8.mp4", sound: "snd8.mp3", mask: CARD_MASK[8], link: "" },
+      { name: "กล้าเป็นตัวเอง", effect: "card", video: "card9.mp4", sound: "snd9.mp3", mask: CARD_MASK[9], link: "" },
+      { name: "รู้จักปล่อยวาง", effect: "card", video: "card10.mp4", sound: "snd10.mp3", mask: CARD_MASK[10], link: "" },
+      { name: "มองโลกในแง่ดี", effect: "card", video: "card11.mp4", sound: "snd11.mp3", mask: CARD_MASK[11], link: "" },
+      { name: "กล้าพูดความรู้สึก", effect: "card", video: "card12.mp4", sound: "snd12.mp3", mask: CARD_MASK[12], link: "" },
+      { name: "อดทนรอคอย", effect: "card", video: "card13.mp4", sound: "snd13.mp3", mask: CARD_MASK[13], link: "" },
+      { name: "ให้อภัย", effect: "card", video: "card14.mp4", sound: "snd14.mp3", mask: CARD_MASK[14], link: "" },
+      { name: "ขอบคุณสิ่งเล็ก ๆ", effect: "card", video: "card15.mp4", sound: "snd15.mp3", mask: CARD_MASK[15], link: "" },
+      { name: "รู้จักขอความช่วยเหลือ", effect: "card", video: "card16.mp4", sound: "snd16.mp3", mask: CARD_MASK[16], link: "" },
+      { name: "เคารพตัวเอง", effect: "card", video: "card17.mp4", sound: "snd17.mp3", mask: CARD_MASK[17], link: "" },
+      { name: "ยินดีกับผู้อื่น", effect: "card", video: "card18.mp4", sound: "snd18.mp3", mask: CARD_MASK[18], link: "" },
+      { name: "มีความหวัง", effect: "card", video: "card19.mp4", sound: "snd19.mp3", mask: CARD_MASK[19], link: "" },
+      { name: "มีความสุขในแบบของฉัน", effect: "card", video: "card20.mp4", sound: "snd20.mp3", mask: CARD_MASK[20], link: "" },
       // กรอบ Mini Hearts (ใช้ร่วมกันทั้ง 4 สี): วิดีโอพื้นใส ครึ่งบน = ภาพ, ครึ่งล่าง = ความโปร่งใส
       { name: "กรอบ Mini Hearts", effect: "packed", video: "frame-fx.mp4", voice: "voice.mp3", aura: true, heart: "heart-fx.mp4", puppets: true, heartLink: "https://www.youtube.com/playlist?list=PL78EDk_9jZAFHeSUckv3Bc4E5w01NLafD", link: "" },
       // เข็มกลัด: วิดีโอตัดเป็นวงกลม ไม่มีออร่า
@@ -473,6 +473,9 @@
     const VOICES = [];
     // เสียงออร่า: ใช้ไฟล์ mp3 (ดังได้แม้ iPhone เปิดโหมดเงียบ)
     const AURA_SND = new Audio('aura.mp3'); AURA_SND.preload = 'auto'; VOICES.push(AURA_SND);
+    // เสียงประจำการ์ด: ใช้ตัวเล่นตัวเดียว เปลี่ยนไฟล์ตามการ์ดที่ส่อง (ปลดล็อกครั้งเดียวตอนแตะลิ้น)
+    const CARD_SND = new Audio('snd1.mp3'); CARD_SND.preload = 'none'; VOICES.push(CARD_SND);
+    let cardSndTimer = null; const CARD_SND_DELAY = 1800;   // เสียงวิ้งก่อน แล้วเสียงการ์ดตามมา
     AFRAME.registerComponent('card-video', {
       schema: { src: { default: '' }, mask: { default: '' }, noAura: { default: false }, aspect: { default: 1.21 } },
       init() {
@@ -786,6 +789,14 @@
       if (cfg.effect === 'zap') fx.setAttribute('zap-effect', { aspect });
       else if (cfg.effect === 'ghost') fx.setAttribute('ghost-effect', { aspect });
       else if (cfg.effect === 'card') fx.setAttribute('card-video', { src: cfg.video, mask: cfg.mask || '', noAura: !!cfg.noAura, aspect });
+      // เสียงประจำการ์ด: โหลดรอไว้ตั้งแต่เจอ เล่นหลังเสียงวิ้ง หยุดเมื่อละกล้อง
+      if (cfg.sound) {
+        target.addEventListener('targetFound', () => {
+          clearTimeout(cardSndTimer); CARD_SND.pause(); CARD_SND.src = cfg.sound; CARD_SND.load(); CARD_SND._owner = i;
+          cardSndTimer = setTimeout(() => { if (target.object3D.visible && CARD_SND._owner === i) { CARD_SND.currentTime = 0; CARD_SND.muted = false; CARD_SND.play().catch(() => {}); } }, SPARKLE_FIRST * 1000 + CARD_SND_DELAY);
+        });
+        target.addEventListener('targetLost', () => { if (CARD_SND._owner === i) { clearTimeout(cardSndTimer); CARD_SND.pause(); } });
+      }
       else if (cfg.effect === 'packed') fx.setAttribute('packed-video', { src: cfg.video, voice: cfg.voice || '', aura: !!cfg.aura, heart: cfg.heart || '', heartLink: cfg.heartLink || '', aspect });
       else fx.setAttribute('video-badge', { aspect, label: cfg.name });
       target.appendChild(fx);
